@@ -34,14 +34,14 @@ type Config struct {
 		WebsocketLogCount      int    `yaml:"websocket_log_count"`
 		SFTP                   struct{}
 	} `yaml:"system"`
-	BindAddress           string `yaml:"bind_address"`
-	BindPort              int    `yaml:"bind_port"`
-	ReadOnly              bool   `yaml:"read_only"`
-	CrashDetection        struct{}
-	Enabled               bool `yaml:"enabled"`
-	DetectCleanExitAsCrash bool `yaml:"detect_clean_exit_as_crash"`
-	Timeout               int  `yaml:"timeout"`
-	JWTSecret             string `yaml:"jwt_secret"` 
+	BindAddress            string `yaml:"bind_address"`
+	BindPort               int    `yaml:"bind_port"`
+	ReadOnly               bool   `yaml:"read_only"`
+	CrashDetection         struct{}
+	Enabled                bool   `yaml:"enabled"`
+	DetectCleanExitAsCrash bool   `yaml:"detect_clean_exit_as_crash"`
+	Timeout                int    `yaml:"timeout"`
+	JWTSecret              string `yaml:"jwt_secret"`
 }
 
 var Current *Config

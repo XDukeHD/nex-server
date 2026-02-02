@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"nex-server/internal/auth"
 	"nex-server/internal/system"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -68,9 +69,9 @@ func (m *Manager) broadcastStats() {
 	if err != nil {
 		return
 	}
-	
+
 	msg, _ := json.Marshal(stats)
-	
+
 	for client := range m.Clients {
 		if !client.Authenticated {
 			continue
@@ -88,10 +89,10 @@ func (m *Manager) checkExpiry() {
 	now := time.Now()
 	for client := range m.Clients {
 		timeLeft := client.Expiry.Sub(now)
-		
+
 		if timeLeft <= 0 {
-			client.Conn.WriteControl(websocket.CloseMessage, 
-				websocket.FormatCloseMessage(4004, "Token expired"), 
+			client.Conn.WriteControl(websocket.CloseMessage,
+				websocket.FormatCloseMessage(4004, "Token expired"),
 				time.Now().Add(time.Second))
 			m.Unregister <- client
 			continue
@@ -113,7 +114,7 @@ func (c *Client) ReadPump() {
 		c.Manager.Unregister <- c
 		c.Conn.Close()
 	}()
-	
+
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -121,12 +122,12 @@ func (c *Client) ReadPump() {
 			}
 			break
 		}
-		
+
 		var msg struct {
 			Event string   `json:"event"`
 			Args  []string `json:"args"`
 		}
-		
+
 		if err := json.Unmarshal(message, &msg); err != nil {
 			continue
 		}
@@ -134,14 +135,14 @@ func (c *Client) ReadPump() {
 		if msg.Event == "auth" && len(msg.Args) > 0 {
 			claims, err := auth.ValidateToken(msg.Args[0])
 			if err != nil {
-				c.Conn.WriteControl(websocket.CloseMessage, 
-					websocket.FormatCloseMessage(4001, "Authentication failed"), 
+				c.Conn.WriteControl(websocket.CloseMessage,
+					websocket.FormatCloseMessage(4001, "Authentication failed"),
 					time.Now().Add(time.Second))
 				return
 			}
 			if claims.Type != "websocket" {
-				c.Conn.WriteControl(websocket.CloseMessage, 
-					websocket.FormatCloseMessage(4001, "Invalid token type"), 
+				c.Conn.WriteControl(websocket.CloseMessage,
+					websocket.FormatCloseMessage(4001, "Invalid token type"),
 					time.Now().Add(time.Second))
 				return
 			}
@@ -150,6 +151,13 @@ func (c *Client) ReadPump() {
 
 		if !c.Authenticated {
 			continue
+		}
+
+		if strings.HasPrefix(msg.Event, "audio-") && len(msg.Args) > 0 {
+			playerID := msg.Args[0]
+			action := strings.TrimPrefix(msg.Event, "audio-")
+			c.Manager.Media.Control(playerID, action)
+			c.Manager.broadcastStats()
 		}
 
 		if msg.Event == "media" && len(msg.Args) > 0 {
@@ -194,15 +202,15 @@ func ServeWS(manager *Manager, c *gin.Context) {
 	if err != nil {
 		return
 	}
-	
+
 	client := &Client{
-		Manager:       manager, 
-		Conn:          conn, 
+		Manager:       manager,
+		Conn:          conn,
 		Send:          make(chan []byte, 256),
 		Expiry:        time.Now().Add(20 * time.Minute),
 		Authenticated: false,
 	}
-	
+
 	client.Manager.Register <- client
 
 	go client.WritePump()

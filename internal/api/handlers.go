@@ -73,16 +73,19 @@ func SetupRoutes(r *gin.Engine, wsManager *ws.Manager) {
 
 		wsUUID := uuid.New().String()
 		socketURL := fmt.Sprintf("wss://%s:%d/v1/monitor/%s/ws", config.Current.API.Host, config.Current.API.Port, wsUUID)
-		
+
 		c.JSON(http.StatusOK, models.WebSocketResponse{
 			Object: "websocket_token",
-			Data: struct{ Token string "json:\"token\""; Socket string "json:\"socket\"" }{
+			Data: struct {
+				Token  string "json:\"token\""
+				Socket string "json:\"socket\""
+			}{
 				Token:  wsToken,
 				Socket: socketURL,
 			},
 		})
 	})
-	
+
 	r.GET("/v1/monitor/:uuid/ws", func(c *gin.Context) {
 		ws.ServeWS(wsManager, c)
 	})

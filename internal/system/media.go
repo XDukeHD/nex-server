@@ -464,3 +464,42 @@ func (m *MediaController) listNames() ([]string, error) {
 	err := m.conn.Object("org.freedesktop.DBus", "/org/freedesktop/DBus").Call("org.freedesktop.DBus.ListNames", 0).Store(&names)
 	return names, err
 }
+
+func (m *MediaController) Control(playerID string, command string) {
+	if !strings.HasPrefix(playerID, "player") {
+		return
+	}
+	idNum, err := strconv.Atoi(strings.TrimPrefix(playerID, "player"))
+	if err != nil {
+		return
+	}
+
+	username := m.getUsername()
+	cmd := exec.Command("runuser", "-u", username, "--", "env", fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%d", m.uid), "playerctl", "-l")
+	out, err := cmd.Output()
+	if err != nil {
+		return
+	}
+	
+	players := strings.Split(strings.TrimSpace(string(out)), "\n")
+	validCounter := 0
+	
+	for _, player := range players {
+		if player == "" {
+			continue
+		}
+		
+		state := m.getPlayerInfo(player, username)
+		if state.Title != "" {
+			validCounter++
+			if validCounter == idNum {
+				m.execPlayerCommand(player, username, command)
+				return
+			}
+		}
+	}
+}
+
+func (m *MediaController) execPlayerCommand(player, username, command string) {
+	exec.Command("runuser", "-u", username, "--", "env", fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%d", m.uid), "playerctl", "-p", player, command).Run()
+}

@@ -38,7 +38,7 @@ type AudioState struct {
 	Title     string `json:"title"`
 	Album     string `json:"album"`
 	ArtURL    string `json:"art_url"`
-	Timestamp int64  `json:"timestamp"` 
+	Timestamp int64  `json:"timestamp"`
 	Duration  int64  `json:"duration"`
 }
 

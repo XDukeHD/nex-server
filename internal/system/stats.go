@@ -30,7 +30,7 @@ func GetSystemStats(audio *MediaController) (*models.StatsEvent, error) {
 	}
 
 	uptime, _ := host.Uptime()
-	
+
 	netIO, _ := psnet.IOCounters(false)
 	var rx, tx uint64
 	if len(netIO) > 0 {
@@ -39,14 +39,14 @@ func GetSystemStats(audio *MediaController) (*models.StatsEvent, error) {
 	}
 
 	diskStat, _ := disk.Usage("/")
-	
+
 	ip := getLocalIP()
-	
+
 	batteryState := getBatteryState()
 	wifiState := getWifiState()
-	
+
 	audioStates := audio.GetAllStatus()
-	
+
 	cpuTemp := getCpuTemp()
 
 	stats := models.SystemStats{
@@ -68,8 +68,8 @@ func GetSystemStats(audio *MediaController) (*models.StatsEvent, error) {
 		Battery:   batteryState,
 		Wifi:      wifiState,
 		Audio:     audioStates,
-		Volume:    getVolume(), 
-		Backlight: getBacklight(), 
+		Volume:    getVolume(),
+		Backlight: getBacklight(),
 	}
 
 	statsJson, err := json.Marshal(stats)
@@ -103,10 +103,10 @@ func getBatteryState() models.BatteryState {
 	if err != nil {
 		return models.BatteryState{Percentage: 100, PluggedIn: true}
 	}
-	
+
 	str := string(out)
 	plugged := strings.Contains(str, "state:               charging") || strings.Contains(str, "state:               fully-charged")
-	
+
 	var pct int
 	lines := strings.Split(str, "\n")
 	for _, line := range lines {
@@ -139,7 +139,7 @@ func getWifiState() models.WifiState {
 			}
 		}
 	}
-	
+
 	return models.WifiState{
 		SSID:      ssid,
 		Connected: ssid != "",
@@ -149,7 +149,7 @@ func getWifiState() models.WifiState {
 func getVolume() int {
 	uid := getRealUID()
 	username := getUsernameFromUID(uid)
-	
+
 	cmd := exec.Command("runuser", "-u", username, "--", "wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%d", uid))
 	out, err := cmd.Output()
@@ -167,7 +167,7 @@ func getVolume() int {
 			}
 		}
 	}
-	
+
 	cmd = exec.Command("runuser", "-u", username, "--", "pactl", "get-sink-volume", "@DEFAULT_SINK@")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%d", uid))
 	out, err = cmd.Output()
@@ -183,7 +183,7 @@ func getVolume() int {
 			}
 		}
 	}
-	
+
 	return 0
 }
 
@@ -192,7 +192,7 @@ func getUsernameFromUID(uid int) string {
 	if err != nil {
 		return fmt.Sprintf("#%d", uid)
 	}
-	
+
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
 		parts := strings.Split(line, ":")
@@ -202,7 +202,7 @@ func getUsernameFromUID(uid int) string {
 			}
 		}
 	}
-	
+
 	return fmt.Sprintf("#%d", uid)
 }
 
@@ -213,7 +213,7 @@ func getRealUID() int {
 			return uid
 		}
 	}
-	
+
 	uid := os.Getuid()
 	if uid == 0 {
 		files, _ := ioutil.ReadDir("/run/user")
@@ -236,12 +236,12 @@ func getBacklight() int {
 	}
 
 	dir := filepath.Join("/sys/class/backlight", files[0].Name())
-	
+
 	maxBytes, err := ioutil.ReadFile(filepath.Join(dir, "max_brightness"))
 	if err != nil {
 		return 100
 	}
-	
+
 	actualBytes, err := ioutil.ReadFile(filepath.Join(dir, "brightness"))
 	if err != nil {
 		return 100
@@ -274,13 +274,13 @@ func getCpuTemp() float64 {
 }
 
 func Round(val float64) int {
-    if val < 0 {
-        return int(val - 0.5)
-    }
-    return int(val + 0.5)
+	if val < 0 {
+		return int(val - 0.5)
+	}
+	return int(val + 0.5)
 }
 
 func ToFixed(num float64, precision int) float64 {
-    output := math.Pow(10, float64(precision))
-    return float64(Round(num * output)) / output
+	output := math.Pow(10, float64(precision))
+	return float64(Round(num*output)) / output
 }
