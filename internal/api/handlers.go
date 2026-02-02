@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"nex-server/internal/auth"
 	"nex-server/internal/config"
@@ -13,6 +14,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "127.0.0.1"
+	}
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String()
+}
 
 func SetupRoutes(r *gin.Engine, wsManager *ws.Manager) {
 	r.POST("/v1/login", func(c *gin.Context) {
@@ -72,7 +83,8 @@ func SetupRoutes(r *gin.Engine, wsManager *ws.Manager) {
 		}
 
 		wsUUID := uuid.New().String()
-		socketURL := fmt.Sprintf("wss://%s:%d/v1/monitor/%s/ws", config.Current.API.Host, config.Current.API.Port, wsUUID)
+		hostIP := getOutboundIP()
+		socketURL := fmt.Sprintf("ws://%s:%d/v1/monitor/%s/ws", hostIP, config.Current.API.Port, wsUUID)
 
 		c.JSON(http.StatusOK, models.WebSocketResponse{
 			Object: "websocket_token",
